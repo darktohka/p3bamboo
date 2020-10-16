@@ -10,7 +10,8 @@ p3bamboo is a Python library that gives you full access to a Panda3D BAM file's 
 Simply install p3bamboo using `pip`:
 
 ```bash
-python -m pip install p3bamboo```
+python -m pip install p3bamboo
+```
 
 Loading a BAM file is very simple:
 
