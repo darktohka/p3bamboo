@@ -1,0 +1,8 @@
+*.py[c|o]
+*.bak
+*.swp
+
+.idea
+.vscode
+
+__pycache__
