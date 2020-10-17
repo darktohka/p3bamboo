@@ -2,7 +2,7 @@ from panda3d.core import Datagram, DatagramIterator
 import logging
 
 """
-  P3BABMBOO
+  P3BAMBOO
   Panda3D BAM file library
 
   Author: Disyer

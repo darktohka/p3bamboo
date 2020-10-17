@@ -4,7 +4,7 @@ from p3bamboo import BamGlobals
 import os
 
 """
-  P3BABMBOO
+  P3BAMBOO
   Panda3D BAM file library
 
   Author: Disyer
@@ -95,6 +95,7 @@ class BamFile(object):
         self.bam_major_ver = di.get_uint16()
         self.bam_minor_ver = di.get_uint16()
         self.version = (self.bam_major_ver, self.bam_minor_ver)
+        self.read_long_pointers = False
         self.type_handles = {}
         self.objects = []
         self.file_datas = []
@@ -221,7 +222,7 @@ class BamFile(object):
         obj_ids = []
 
         while di.get_remaining_size() > 0:
-            obj_ids.append(read_pointer(di))
+            obj_ids.append(self.read_pointer(di))
 
         return obj_ids
 
@@ -264,13 +265,13 @@ class BamFile(object):
 
     def read_object(self, dgi):
         handle_id = self.read_handle(dgi)
-        obj_id = read_pointer(dgi)
+        obj_id = self.read_pointer(dgi)
         data = dgi.extract_bytes(dgi.get_remaining_size())
 
         handle_name = self.type_handles[handle_id]['name']
 
         obj = {'handle_id': handle_id, 'handle_name': handle_name, 'obj_id': obj_id, 'data': data}
-        node = BamFactory.create(self, handle_name, bam_version=self.version)
+        node = BamFactory.create(self, self.version, handle_name)
 
         if node is not None:
             node.load_object(obj)
@@ -321,8 +322,15 @@ class BamFile(object):
             obj_dg.add_uint8(opcode)
 
         if obj is not None:
+            obj_id = obj['obj_id']
+            instance = self.object_map.get(obj_id)
+
             self.write_handle(obj_dg, obj['handle_id'], written_handles)
-            write_pointer(obj_dg, obj['obj_id'])
+            self.write_pointer(obj_dg, obj_id)
+
+            if instance:
+                instance.write_object(self.version, obj)
+
             obj_dg.appendData(obj['data'])
 
         self.write_datagram(obj_dg, dg)
@@ -356,6 +364,7 @@ class BamFile(object):
             dg.add_bool(self.stdfloat_double)
 
         self.written_handles = []
+        self.write_long_pointers = False
 
         if self.objects:
             self.write_object(dg, BamGlobals.BOC_push, self.objects[0], self.written_handles)
