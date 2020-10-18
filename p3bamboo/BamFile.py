@@ -87,7 +87,7 @@ class BamFile(object):
 
     def load(self, f):
         if f.read(len(self.HEADER)) != self.HEADER:
-            raise InvalidBAMException('Invalid BAM header.')
+            raise BamGlobals.InvalidBAMException('Invalid BAM header.')
 
         dg = Datagram(f.read())
         di = DatagramIterator(dg)
@@ -138,13 +138,13 @@ class BamFile(object):
         return self.read_array(di, lambda di: di.get_uint32())
 
     def read_vec2_array(self, di):
-        return self.read_array(di, read_vec2)
+        return self.read_array(di, BamGlobals.read_vec2)
 
     def read_vec3_array(self, di):
-        return self.read_array(di, read_vec3)
+        return self.read_array(di, BamGlobals.read_vec3)
 
     def read_vec4_array(self, di):
-        return self.read_array(di, read_vec4)
+        return self.read_array(di, BamGlobals.read_vec4)
 
     def read_array(self, di, reader):
         ipd_pointer = di.get_uint16()
@@ -211,7 +211,7 @@ class BamFile(object):
             num_parent_classes = di.get_uint8()
             parent_classes = []
 
-            for i in range(num_parent_classes):
+            for _ in range(num_parent_classes):
                 parent_classes.append(self.read_handle(di))
 
             self.type_handles[handle_id] = {'name': name, 'parent_classes': parent_classes}
