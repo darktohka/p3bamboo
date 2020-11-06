@@ -5,7 +5,7 @@ with open('README.md', 'r') as f:
 
 setuptools.setup(
     name='p3bamboo',
-    version='1.0.2',
+    version='1.0.4',
     author='darktohka',
     author_email='daniel@tohka.us',
     description='Panda3D BAM file parser library',

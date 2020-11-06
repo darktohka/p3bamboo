@@ -38,6 +38,11 @@ class BamObject(object):
 
         obj['data'] = dg.get_message()
 
+    def load_type(self, type_constructor, di):
+        obj = type_constructor(self.bam_file, self.bam_version)
+        obj.load(di)
+        return obj
+
     def load(self, di):
         pass
 

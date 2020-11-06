@@ -1,5 +1,7 @@
 from panda3d.core import Datagram, DatagramIterator
+from collections import OrderedDict
 from p3bamboo.BamFactory import BamFactory
+from p3bamboo.BamGlobals import InvalidBAMException
 from p3bamboo import BamGlobals
 import os
 
@@ -22,7 +24,7 @@ class BamFile(object):
         self.stdfloat_double = -1
         self.nesting_level = -1
         self.type_handles = {}
-        self.objects = []
+        self.objects = OrderedDict()
         self.file_datas = []
         self.filename = None
         self.write_long_pointers = False
@@ -37,6 +39,9 @@ class BamFile(object):
 
     def get_filename(self):
         return self.filename
+
+    def get_object(self, object_id):
+        return self.object_map.get(object_id)
 
     def get_handle_id_by_name(self, handle_name):
         if not isinstance(handle_name, str):
@@ -75,19 +80,16 @@ class BamFile(object):
 
         return children
 
-    def find_first(self, handle_id):
-        handle_id = self.get_handle_id_by_name(handle_id)
+    def get_objects_of_type(self, type_name):
+        type_id = self.get_handle_id_by_name(type_name)
 
-        if handle_id is None:
-            return []
-
-        for obj in self.objects:
-            if obj['handle_id'] == handle_id:
-                return self.object_map[obj['obj_id']]
+        for obj_id, obj in self.objects.items():
+            if obj['handle_id'] == type_id and obj_id in self.object_map:
+                yield self.object_map[obj_id]
 
     def load(self, f):
         if f.read(len(self.HEADER)) != self.HEADER:
-            raise BamGlobals.InvalidBAMException('Invalid BAM header.')
+            raise InvalidBAMException('Invalid BAM header.')
 
         dg = Datagram(f.read())
         di = DatagramIterator(dg)
@@ -97,8 +99,8 @@ class BamFile(object):
         self.version = (self.bam_major_ver, self.bam_minor_ver)
         self.read_long_pointers = False
         self.type_handles = {}
-        self.objects = []
         self.file_datas = []
+        self.objects.clear()
 
         if self.version >= (5, 0):
             self.file_endian = di.get_uint8()
@@ -171,6 +173,24 @@ class BamFile(object):
 
         return pointer
 
+    def read_pointer_uint32_list(self, di):
+        return [self.read_pointer(di) for i in range(di.get_uint32())]
+
+    def read_pointer_int32_list(self, di):
+        return [self.read_pointer(di) for i in range(di.get_int32())]
+
+    def write_pointer_uint32_list(self, dg, pointers):
+        dg.add_uint32(len(pointers))
+
+        for pointer in pointers:
+            self.write_pointer(dg, pointer)
+
+    def write_pointer_int32_list(self, dg, pointers):
+        dg.add_int32(len(pointers))
+
+        for pointer in pointers:
+            self.write_pointer(dg, pointer)
+
     def write_pointer(self, dg, pointer):
         if self.write_long_pointers:
             return dg.add_uint32(pointer)
@@ -181,16 +201,25 @@ class BamFile(object):
         return dg.add_uint16(pointer)
 
     def dump_handles(self):
-        print('Dumping handles...')
+        dump = []
 
         for handle_id, handle in self.type_handles.items():
-            print(handle_id, handle)
+            dump.append(f'{handle_id}: {handle}')
+
+        return '\n'.join(dump)
 
     def dump_objects(self):
-        print('Dumping objects...')
+        dump = []
 
-        for obj_id, obj in sorted(self.object_map.items(), key=lambda x: x[0]):
-            print(obj_id, str(obj))
+        for obj_id, obj in self.objects.keys():
+            actual_obj = self.get_object(obj_id)
+
+            if actual_obj is None:
+                dump.append(f'{obj_id}: data, {obj}')
+            else:
+                dump.append(f'{obj_id}: {actual_obj}')
+
+        return '\n'.join(dump)
 
     def read_datagram(self, di):
         num_bytes = di.get_uint32()
@@ -279,7 +308,10 @@ class BamFile(object):
         elif handle_name not in self.unknown_handles:
             self.unknown_handles.append(handle_name)
 
-        self.objects.append(obj)
+        if obj_id in self.objects:
+            raise InvalidBAMException(f'Object ID {obj_id} ({handle_name}) was encountered twice in the BAM stream!')
+
+        self.objects[obj_id] = obj
 
     def write_handle(self, dg, handle_id, written_handles):
         dg.add_uint16(handle_id)
@@ -367,9 +399,10 @@ class BamFile(object):
         self.write_long_pointers = False
 
         if self.objects:
-            self.write_object(dg, BamGlobals.BOC_push, self.objects[0], self.written_handles)
+            objects = list(self.objects.values())
+            self.write_object(dg, BamGlobals.BOC_push, objects[0], self.written_handles)
 
-            for obj in self.objects[1:]:
+            for obj in objects[1:]:
                 self.write_object(dg, BamGlobals.BOC_adjunct, obj, self.written_handles)
 
         for data in self.file_datas:
