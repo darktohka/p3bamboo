@@ -1,7 +1,7 @@
 from panda3d.core import Datagram, DatagramIterator
 from collections import OrderedDict
 from p3bamboo.BamFactory import BamFactory
-from p3bamboo.BamGlobals import InvalidBAMException
+from p3bamboo.BamGlobals import BAMException
 from p3bamboo import BamGlobals
 import os
 
@@ -89,7 +89,7 @@ class BamFile(object):
 
     def load(self, f):
         if f.read(len(self.HEADER)) != self.HEADER:
-            raise InvalidBAMException('Invalid BAM header.')
+            raise BAMException('Invalid BAM header.')
 
         dg = Datagram(f.read())
         di = DatagramIterator(dg)
@@ -204,20 +204,20 @@ class BamFile(object):
         dump = []
 
         for handle_id, handle in self.type_handles.items():
-            dump.append(f'{handle_id}: {handle}')
+            dump.append('{0}: {1}'.format(handle_id, handle))
 
         return '\n'.join(dump)
 
     def dump_objects(self):
         dump = []
 
-        for obj_id, obj in self.objects.keys():
+        for obj_id, obj in self.objects.items():
             actual_obj = self.get_object(obj_id)
 
             if actual_obj is None:
-                dump.append(f'{obj_id}: data, {obj}')
+                dump.append('{0}: data, {1}'.format(obj_id, obj))
             else:
-                dump.append(f'{obj_id}: {actual_obj}')
+                dump.append('{0}: {1}'.format(obj_id, actual_obj))
 
         return '\n'.join(dump)
 
@@ -309,7 +309,7 @@ class BamFile(object):
             self.unknown_handles.append(handle_name)
 
         if obj_id in self.objects:
-            raise InvalidBAMException(f'Object ID {obj_id} ({handle_name}) was encountered twice in the BAM stream!')
+            raise BAMException(f'Object ID {obj_id} ({handle_name}) was encountered twice in the BAM stream!')
 
         self.objects[obj_id] = obj
 

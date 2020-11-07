@@ -8,7 +8,7 @@
 
 from panda3d.core import LVecBase2f, LVecBase3f, LVecBase4f
 
-class InvalidBAMException(Exception):
+class BAMException(Exception):
     pass
 
 ### BAM object codes
