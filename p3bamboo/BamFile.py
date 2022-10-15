@@ -93,9 +93,11 @@ class BamFile(object):
 
         dg = Datagram(f.read())
         di = DatagramIterator(dg)
-        self.header_size = di.get_uint32()
-        self.bam_major_ver = di.get_uint16()
-        self.bam_minor_ver = di.get_uint16()
+        hdg = self.read_datagram(hdi)
+        hdi = DatagramIterator(hdg)
+
+        self.bam_major_ver = hdi.get_uint16()
+        self.bam_minor_ver = hdi.get_uint16()
         self.version = (self.bam_major_ver, self.bam_minor_ver)
         self.read_long_pointers = False
         self.type_handles = {}
@@ -103,12 +105,12 @@ class BamFile(object):
         self.objects.clear()
 
         if self.version >= (5, 0):
-            self.file_endian = di.get_uint8()
+            self.file_endian = hdi.get_uint8()
         else:
             self.file_endian = 1
 
         if self.version >= (6, 27):
-            self.stdfloat_double = di.get_bool()
+            self.stdfloat_double = hdi.get_bool()
         else:
             self.stdfloat_double = False
 
@@ -223,6 +225,10 @@ class BamFile(object):
 
     def read_datagram(self, di):
         num_bytes = di.get_uint32()
+
+        if num_bytes == 0xFFFFFFFF:
+            num_bytes += di.get_uint32()
+
         data = di.extractBytes(num_bytes)
         dg = Datagram(data)
         return dg
@@ -272,7 +278,6 @@ class BamFile(object):
             opcode = dgi.get_uint8()
         else:
             opcode = BamGlobals.BOC_adjunct
-
         if opcode == BamGlobals.BOC_push:
             self.nesting_level += 1
             return self.read_object(dgi)
@@ -361,7 +366,7 @@ class BamFile(object):
             self.write_pointer(obj_dg, obj_id)
 
             if instance:
-                instance.write_object(self.version, obj)
+                instance.save(self.version)
 
             obj_dg.appendData(obj['data'])
 
