@@ -278,6 +278,7 @@ class BamFile(object):
             opcode = dgi.get_uint8()
         else:
             opcode = BamGlobals.BOC_adjunct
+
         if opcode == BamGlobals.BOC_push:
             self.nesting_level += 1
             return self.read_object(dgi)
