@@ -93,7 +93,7 @@ class BamFile(object):
 
         dg = Datagram(f.read())
         di = DatagramIterator(dg)
-        hdg = self.read_datagram(hdi)
+        hdg = self.read_datagram(di)
         hdi = DatagramIterator(hdg)
 
         self.bam_major_ver = hdi.get_uint16()
