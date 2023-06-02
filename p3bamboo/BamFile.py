@@ -1,7 +1,7 @@
-from panda3d.core import Datagram, DatagramIterator
 from collections import OrderedDict
 from p3bamboo.BamFactory import BamFactory
 from p3bamboo.BamGlobals import BAMException
+from p3bamboo.StructDatagram import StructDatagram, StructDatagramIterator
 from p3bamboo import BamGlobals
 import os
 
@@ -91,10 +91,8 @@ class BamFile(object):
         if f.read(len(self.HEADER)) != self.HEADER:
             raise BAMException('Invalid BAM header.')
 
-        dg = Datagram(f.read())
-        di = DatagramIterator(dg)
-        hdg = self.read_datagram(di)
-        hdi = DatagramIterator(hdg)
+        di = StructDatagramIterator(f.read())
+        hdi = StructDatagramIterator(self.read_datagram(di))
 
         self.bam_major_ver = hdi.get_uint16()
         self.bam_minor_ver = hdi.get_uint16()
@@ -229,8 +227,8 @@ class BamFile(object):
         if num_bytes == 0xFFFFFFFF:
             num_bytes += di.get_uint32()
 
-        data = di.extractBytes(num_bytes)
-        dg = Datagram(data)
+        data = di.extract_bytes(num_bytes)
+        dg = StructDatagram(data)
         return dg
 
     def read_handle(self, di, parent=None):
@@ -272,7 +270,7 @@ class BamFile(object):
 
     def read_object_code(self, di):
         dg = self.read_datagram(di)
-        dgi = DatagramIterator(dg)
+        dgi = StructDatagramIterator(dg)
 
         if self.version >= (6, 21):
             opcode = dgi.get_uint8()
@@ -295,7 +293,7 @@ class BamFile(object):
 
     def read_object_from_dg(self, di):
         dg = self.read_datagram(di)
-        dgi = DatagramIterator(dg)
+        dgi = StructDatagramIterator(dg)
         return self.read_object(dgi)
 
     def read_object(self, dgi):
@@ -354,7 +352,7 @@ class BamFile(object):
         dg.append_data(data)
 
     def write_object(self, dg, opcode, obj=None, written_handles=None):
-        obj_dg = Datagram()
+        obj_dg = StructDatagram()
 
         if self.version >= (6, 21):
             obj_dg.add_uint8(opcode)
@@ -369,19 +367,19 @@ class BamFile(object):
             if instance:
                 instance.save(self.version)
 
-            obj_dg.appendData(obj['data'])
+            obj_dg.append_data(obj['data'])
 
         self.write_datagram(obj_dg, dg)
 
     def write_datagram(self, dg, target_dg):
-        msg = dg.getMessage()
+        msg = dg.get_message()
 
         target_dg.add_uint32(len(msg))
         target_dg.append_data(msg)
 
     def write(self, f):
-        dg = Datagram()
-        dg.appendData(self.HEADER)
+        dg = StructDatagram()
+        dg.append_data(self.HEADER)
 
         if self.version >= (6, 27):
             header_size = 6
@@ -417,7 +415,7 @@ class BamFile(object):
         if self.version >= (6, 21):
             self.write_object(dg, BamGlobals.BOC_pop)
 
-        f.write(dg.getMessage())
+        f.write(dg.get_message())
 
     def __str__(self):
         return 'Panda3D BAM file version {0}.{1} ({2}, {3})'.format(

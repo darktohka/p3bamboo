@@ -6,8 +6,6 @@
   Date: 2020/10/16
 """
 
-from panda3d.core import LVecBase2f, LVecBase3f, LVecBase4f
-
 class BAMException(Exception):
     pass
 
@@ -20,13 +18,13 @@ BOC_file_data = 4
 ### BAM object codes
 
 def read_vec2(di):
-    return LVecBase2f(di.get_float32(), di.get_float32())
+    return (di.get_float32(), di.get_float32())
 
 def read_vec3(di):
-    return LVecBase3f(di.get_float32(), di.get_float32(), di.get_float32())
+    return (di.get_float32(), di.get_float32(), di.get_float32())
 
 def read_vec4(di):
-    return LVecBase4f(di.get_float32(), di.get_float32(), di.get_float32(), di.get_float32())
+    return (di.get_float32(), di.get_float32(), di.get_float32(), di.get_float32())
 
 def write_vec(dg, vec):
     for i in vec:

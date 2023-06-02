@@ -1,5 +1,5 @@
-from panda3d.core import Datagram, DatagramIterator
 from p3bamboo.BamGlobals import BAMException
+from p3bamboo.StructDatagram import StructDatagram, StructDatagramIterator
 import logging
 
 """
@@ -21,7 +21,7 @@ class BamObject(object):
         if write_version is None:
             write_version = self.bam_version
 
-        dg = Datagram()
+        dg = StructDatagram()
         self.write(write_version, dg)
 
         if self.extra_data:
@@ -37,8 +37,8 @@ class BamObject(object):
 
     def load_object(self, obj):
         self.obj_id = obj['obj_id']
-        dg = Datagram(obj['data'])
-        di = DatagramIterator(dg)
+
+        di = StructDatagramIterator(obj['data'])
         self.load(di)
 
         if di.get_remaining_size() > 0:
